@@ -1,14 +1,85 @@
-# authentication/templates/authentication/signup.html
-{% extends 'base.html' %}
-{% block content %}
+# templates/base.html
+<html>
+
+<head>
+    <title>FotoBlog</title>
+    <script>
+        (function () {
+            var width = 320;    // We will scale the photo width to this
+            var height = 0;     // This will be computed based on the input stream
+            var streaming = false;
+            var video = null;
+            var canvas = null;
+            var photo = null;
+            var startbutton = null;
+            var form = null;
+
+            function startup() {
+                video = document.getElementById('video');
+                canvas = document.getElementById('canvas');
+                photo = document.getElementById('image');
+                startbutton = document.getElementById('capture');
+                form = document.getElementById('form1');
+
+                navigator.mediaDevices.getUserMedia({ video: true, audio: false })
+                    .then(function (stream) {
+                        video.srcObject = stream;
+                        video.play();
+                    })
+                    .catch(function (err) {
+                        console.log("An error occurred: " + err);
+                    });
+                startbutton.addEventListener('click', function (ev) {
+                    var context = canvas.getContext('2d');
+                    context.drawImage(video, 0, 0, 640, 480);
+                    photo.value = canvas.toDataURL();
+                    form.submit();
+                    ev.preventDefault();
+                }, false);
+                clearphoto();
+            }
+            function clearphoto() {
+                var context = canvas.getContext('2d');
+                context.fillStyle = "#AAA";
+                context.fillRect(0, 0, canvas.width, canvas.height);
+
+                var data = canvas.toDataURL('image/png');
+                photo.setAttribute('src', data);
+            }
+            function takepicture() {
+                var context = canvas.getContext('2d');
+                if (width && height) {
+                    canvas.width = width;
+                    canvas.height = height;
+                    context.drawImage(video, 0, 0, width, height);
+
+                    var data = canvas.toDataURL('image/png');
+                    photo.value(data);
+                } else {
+                    clearphoto();
+                }
+            }
+            window.addEventListener('load', startup, false);
+        })();
+    </script>
+</head>
+
+<body>
+    <h1>FotoBlog</h1>
+
     <h2>Sign Up</h2>
     {% if form.errors %}
-        {{ form.errors }}
+    {{ form.errors }}
     {% endif %}
-    <form method="post">
+    <form id='form1' method="post">
         {{ form.as_p }}
         {% csrf_token %}
-        
-        <button type="submit" >Submit</button>
+        <video id="video" style="display:none;"></video>
+        <canvas id="canvas" width="640" height="480"></canvas>
+        <input id="image" style="display: none;" name="profile_photo" type="image" hidden />
+        <br>
+        <button id="capture" type="button">Submit</button>
     </form>
-{% endblock content %}
+</body>
+
+</html>

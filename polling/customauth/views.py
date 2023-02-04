@@ -1,6 +1,6 @@
 from django.shortcuts import render
 from django.conf import settings
-
+import logging
 
 # Create your views here.
 # authentication/views.py
@@ -17,6 +17,7 @@ def logout_user(request):
 def login_page(request):
     form = forms.LoginForm()
     if request.method == 'POST':
+        
         form = forms.LoginForm(request.POST)
         if form.is_valid():
             user = authenticate(
@@ -36,10 +37,12 @@ def login_page(request):
 def signup_page(request):
     form = forms.SignupForm()
     if request.method == 'POST':
+        print("Got signup form")
         form = forms.SignupForm(request.POST)
         if form.is_valid():
+            print("REQUEST {}".format(request.body))
             user = form.save()
             # auto-login user
             login(request, user)
-            return redirect('/account/profile')
+            return redirect('/')
     return render(request, 'signup.html', context={'form': form})

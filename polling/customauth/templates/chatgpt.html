@@ -1,0 +1,38 @@
+<html>
+  <head>
+    <script>
+      const video = document.querySelector("#video");
+      const canvas = document.querySelector("#canvas");
+      const context = canvas.getContext("2d");
+      const captureButton = document.querySelector("#capture");
+      const form = document.querySelector("form");
+      const imageInput = document.querySelector("#image");
+
+      async function init() {
+        if (navigator.mediaDevices.getUserMedia) {
+          const stream = await navigator.mediaDevices.getUserMedia({
+            video: true,
+          });
+          video.srcObject = stream;
+        }
+      }
+
+      captureButton.addEventListener("click", () => {
+        context.drawImage(video, 0, 0, 640, 480);
+        imageInput.value = canvas.toDataURL();
+        form.submit();
+      });
+
+      init();
+    </script>
+  </head>
+  <body>
+    <video id="video" width="640" height="480"></video>
+    <canvas id="canvas" width="640" height="480"></canvas>
+    <br />
+    <form action="http://127.0.0.1/signup" method="post">
+      <input type="image" id="image" name="image" hidden />
+      <button id="capture">Capture</button>
+    </form>
+  </body>
+</html>
