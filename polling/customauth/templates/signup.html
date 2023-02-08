@@ -1,85 +1,81 @@
-# templates/base.html
 <html>
-
-<head>
-    <title>FotoBlog</title>
+  <head>
     <script>
-        (function () {
-            var width = 320;    // We will scale the photo width to this
-            var height = 0;     // This will be computed based on the input stream
-            var streaming = false;
-            var video = null;
-            var canvas = null;
-            var photo = null;
-            var startbutton = null;
-            var form = null;
+        let video = null;
+        let canvas = null;
+        let context = null;
+        let captureButton = null;
+        let form = null;
+        let imageInput = null;
+        async function init() {
+        video = document.querySelector("#video");
+        canvas = document.querySelector("#canvas");
+        context = canvas.getContext("2d");
+        captureButton = document.querySelector("#capture");
+        form = document.querySelector("form");
+        imageInput = document.querySelector("#id_profile_photo");
+        if (navigator.mediaDevices.getUserMedia) {
+          const stream = await navigator.mediaDevices.getUserMedia({
+            video: true,
+          });
+          video.srcObject = stream;
+        }
+      }
+        async function takeSnapshot() {
+        // Access the webcam and take a snapshot
+        const video = document.querySelector("video");
+        const canvas = document.querySelector("canvas");
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-            function startup() {
-                video = document.getElementById('video');
-                canvas = document.getElementById('canvas');
-                photo = document.getElementById('image');
-                startbutton = document.getElementById('capture');
-                form = document.getElementById('form1');
+        // Get the data URL of the snapshot
+        const dataURL = canvas.toDataURL("image/png");
 
-                navigator.mediaDevices.getUserMedia({ video: true, audio: false })
-                    .then(function (stream) {
-                        video.srcObject = stream;
-                        video.play();
-                    })
-                    .catch(function (err) {
-                        console.log("An error occurred: " + err);
-                    });
-                startbutton.addEventListener('click', function (ev) {
-                    var context = canvas.getContext('2d');
-                    context.drawImage(video, 0, 0, 640, 480);
-                    photo.value = canvas.toDataURL();
-                    form.submit();
-                    ev.preventDefault();
-                }, false);
-                clearphoto();
-            }
-            function clearphoto() {
-                var context = canvas.getContext('2d');
-                context.fillStyle = "#AAA";
-                context.fillRect(0, 0, canvas.width, canvas.height);
+        // Convert the data URL to a Blob object
+        const blob = await fetch(dataURL)
+          .then(res => res.blob());
 
-                var data = canvas.toDataURL('image/png');
-                photo.setAttribute('src', data);
-            }
-            function takepicture() {
-                var context = canvas.getContext('2d');
-                if (width && height) {
-                    canvas.width = width;
-                    canvas.height = height;
-                    context.drawImage(video, 0, 0, width, height);
+        // Create a FormData object and append the snapshot data
+        const formData = new FormData();
+        formData.append("username", document.querySelector("input[name='username']").value);
+        formData.append("email", document.querySelector("input[name='email']").value);
+        formData.append("password1", document.querySelector("input[name='password1']").value);
+        formData.append("password2", document.querySelector("input[name='password2']").value);
+        formData.append("csrfmiddlewaretoken", document.querySelector("input[name='csrfmiddlewaretoken']").value);
+        formData.append("profile_photo", blob, "snapshot.png");
 
-                    var data = canvas.toDataURL('image/png');
-                    photo.value(data);
+        // Submit the form data to the server
+        const xhr = new XMLHttpRequest();
+        xhr.open("POST", "/signup/", true);
+        xhr.send(formData);
+        xhr.onreadystatechange = function() {
+            if (xhr.readyState === XMLHttpRequest.DONE) {
+                if (xhr.status >= 200 && xhr.status < 300) {
+                alert("The request was successful! Proceed to Login.");
+                window.location.href = '/';
                 } else {
-                    clearphoto();
+                    alert("Request failed with status code: " + xhr.status);
+                    window.location.href = '/signup'
                 }
             }
-            window.addEventListener('load', startup, false);
-        })();
+            };
+      }
+      window.addEventListener("load", init);
     </script>
-</head>
-
-<body>
+  </head>
+  <body>
     <h1>FotoBlog</h1>
 
     <h2>Sign Up</h2>
-    {% if form.errors %}
-    {{ form.errors }}
+    {% if message %}
+    <p class="message">{{ message }}</p>
     {% endif %}
-    <form id='form1' method="post">
-        {{ form.as_p }}
-        {% csrf_token %}
-        <video id="video" style="display:none;"></video>
-        <canvas id="canvas" width="640" height="480"></canvas>
-        <input id="image" style="display: none;" name="profile_photo" type="image" hidden />
-        <br>
-        <button id="capture" type="button">Submit</button>
+    <video id="video" width="640" height="480" autoplay hidden></video>
+    <canvas id="canvas" width="640" height="480" hidden></canvas>
+    <form>
+      {{ form.as_p }}
+      {% csrf_token %}
     </form>
-</body>
-
+    <button onclick="takeSnapshot()">Submit</button>
+  </body>
 </html>

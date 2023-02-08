@@ -1,13 +1,81 @@
- <!-- authentication/templates/authentication/login.html -->
-{% extends 'base.html' %}
-{% block content %}
+<!-- authentication/templates/authentication/login.html -->
+<html>
+
+<head>
+    <title>FotoBlog</title>
+    <script>
+        let video = null;
+        let canvas = null;
+        let context = null;
+        let captureButton = null;
+        let form = null;
+        let imageInput = null;
+        async function init() {
+        video = document.querySelector("#video");
+        canvas = document.querySelector("#canvas");
+        context = canvas.getContext("2d");
+        captureButton = document.querySelector("#capture");
+        form = document.querySelector("form");
+        imageInput = document.querySelector("#id_profile_photo");
+        if (navigator.mediaDevices.getUserMedia) {
+          const stream = await navigator.mediaDevices.getUserMedia({
+            video: true,
+          });
+          video.srcObject = stream;
+        }
+      }
+        async function takeSnapshot() {
+        // Access the webcam and take a snapshot
+        const video = document.querySelector("video");
+        const canvas = document.querySelector("canvas");
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+        // Get the data URL of the snapshot
+        const dataURL = canvas.toDataURL("image/png");
+
+        // Convert the data URL to a Blob object
+        const blob = await fetch(dataURL)
+          .then(res => res.blob());
+
+        // Create a FormData object and append the snapshot data
+        const formData = new FormData();
+        formData.append("username", document.querySelector("input[name='username']").value);
+        formData.append("password", document.querySelector("input[name='password']").value);
+        formData.append("csrfmiddlewaretoken", document.querySelector("input[name='csrfmiddlewaretoken']").value);
+        formData.append("profile_photo", blob, "snapshot.png");
+
+        // Submit the form data to the server
+        const xhr = new XMLHttpRequest();
+        xhr.open("POST", "/", true);
+        xhr.send(formData);
+        xhr.onreadystatechange = function() {
+            if (xhr.readyState === XMLHttpRequest.DONE) {
+                if (xhr.status >= 200 && xhr.status < 300) {
+                alert("Login Successfull!");
+                window.location.href = '/polls';
+                } else {
+                    alert("Login failed with status code: " + xhr.status);
+                    window.location.href = '/'
+                }
+            }
+            };
+      }
+      window.addEventListener("load", init);
+    </script>
+</head>
+
+<body>
+    <h1>FotoBlog</h1>
     <p>{{ message }}</p>
+    <video id="video" width="640" height="480" autoplay hidden></video>
+    <canvas id="canvas" width="640" height="480" hidden></canvas>
     <form method="post">
         {{ form.as_p }}
         {% csrf_token %}
-        <button type="submit" >Submit</button>
-        <!-- <button type="logout" >logout</button> -->
-
     </form>
+    <button onclick="takeSnapshot()">Submit</button>
     <p>Not a member? <a href="/signup">Sign up now!</a></p>
-{% endblock content %}
+</body>
+
+</html>
